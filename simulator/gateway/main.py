@@ -13,7 +13,7 @@ import get_username_password
 IoTCoreId='ahryhns'
 templateId='tl05j5ef'
 DeviceKey='7fa83d34'
-DeviceSecret=''
+DeviceSecret='lOeUAXBSLYqAKlOH'
 topic = templateId + '/' +DeviceKey + '/event/post/request'
 
 config=get_username_password.get_device_config(IoTCoreId,DeviceKey,DeviceSecret,'thingidp',0,'MD5')
