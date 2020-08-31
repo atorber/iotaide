@@ -13,12 +13,14 @@ import get_username_password
 IoTCoreId='ahryhns'
 templateId='tl05j5ef'
 DeviceKey='7fa83d34'
-DeviceSecret=''
+DeviceSecret='lOeUAXBSLYqAKlOH'
 topic = templateId + '/' +DeviceKey + '/event/post/request'
 
 config=get_username_password.get_device_config(IoTCoreId,DeviceKey,DeviceSecret,'thingidp',0,'MD5')
-print(config)
+# print(config)
+
 count=0  
+isconnect=False
 
 # 定义变量，用于存储设备最新状态
 last_state={}
@@ -53,24 +55,24 @@ def get_disk_info():
         total_disk_size= total_disk_size+disk_info.total/1024/1024/1024
 
     # 计算磁盘总的使用率
-    last_state['disk_usage']="%.2f" % ((used_disk_size/total_disk_size)*100)
+    last_state['disk_usage']=round((used_disk_size/total_disk_size)*100, 2)
 
 # 获取CPU信息
 def get_cpu_info():
     # CPU使用率
-    last_state['cpu_usage'] = "%.2f" % psutil.cpu_percent(interval=1)
+    last_state['cpu_usage'] =round(psutil.cpu_percent(interval=1), 2)
     # CPU内核数量
-    last_state['cpu_core_number']="%i" % psutil.cpu_count(logical=True)
+    last_state['cpu_core_number']=round(psutil.cpu_count(logical=True), 2)
 
 # 获取内存信息
 def get_memory_info():
     virtual_memory = psutil.virtual_memory()
     # 内存使用率
-    last_state['memory_usage']="%.2f" % virtual_memory.percent
+    last_state['memory_usage']=round(virtual_memory.percent, 2)
     # 内存总量
-    last_state['memory_total'] = "%.2f" % (virtual_memory.total/1024/1024/1024)
+    last_state['memory_total'] =round(virtual_memory.total/1024/1024/1024, 2)
     # 剩余内存
-    last_state['memory_free'] ="%.2f" % (virtual_memory.free/1024/1024/1024)
+    last_state['memory_free'] =round(virtual_memory.free/1024/1024/1024, 2)
 
 def update_info():
     get_disk_info()
@@ -79,8 +81,13 @@ def update_info():
     # print(last_state)
 
 def on_connect(client, userdata, flags, rc):
+    global isconnect
     print("Connected with result code "+str(rc))
-    # client.subscribe("#")     
+    # client.subscribe("#")    
+    isconnect=True 
+
+def on_publish(client, userdata, mid):
+    print('MQTT message pub:'+str(mid))
 
 def on_message(client, userdata, msg):
     global count
@@ -92,18 +99,27 @@ def on_subscribe(client, userdata, mid, granted_qos):
 
 
 def on_disconnect(client, userdata, rc):
+    global isconnect
     if rc != 0:
         print("Unexpected disconnection %s" % rc)
+    else:
+        print("expected disconnection %s" % rc)
+    isconnect=False
 
 if __name__ == '__main__':
     client = mqtt.Client(config['client_id'])
     client.username_pw_set(config['username'], config['password'])
     client.on_connect = on_connect
     client.on_message = on_message
+    client.on_publish = on_publish
     client.on_subscribe = on_subscribe
     client.on_disconnect = on_disconnect
     client.connect(config['HOST'], config['PORT'], 60)
-    while True:
+    client.loop_start()
+
+    time.sleep(3)
+
+    while isconnect:
         update_info()
         payload={
         "reqId":str(uuid.uuid4()),
@@ -113,8 +129,6 @@ if __name__ == '__main__':
         }
         payload=json.dumps(payload)
         client.publish(topic,payload ,0)
-        count+=1
-        print('MQTT message count:%i' % count)
         print('MQTT message published:%s' % payload)
         time.sleep(30)
 
