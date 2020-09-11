@@ -8,7 +8,7 @@
 
 ├── hardware //硬件实现代码
 
-│   └── WiFi_control_switch_base_nodemcu //基于nodemcu实现的8路wifi控制器
+│   ├── WiFi_control_switch_base_nodemcu //基于nodemcu实现的8路wifi控制器
 
 │       ├── README.md
 
