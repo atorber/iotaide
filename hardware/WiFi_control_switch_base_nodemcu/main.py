@@ -7,22 +7,24 @@ from robust import MQTTClient
 #from simple import MQTTClient
 
 #import _thread
- 
+
+# wifi配置信息
 SSID="HUAWEI-LUYC"
 PASSWORD="15901228151"
 
-
-
+# 设备配置信息
 SERVER = "ahryhns.iot.gz.baidubce.com"
 CLIENT_ID = "e43b3850"
 TOPIC = b"t3ta0k6j/e43b3850/event/post/request"
 username='thingidp@ahryhns|e43b3850|0|MD5'
 password='替换为连接密码'
 
-on=True
-off=False
+ON=True
+OFF=False
+i=0
 
-button=Pin(16,Pin.IN,off)
+# 初始化引脚
+button=Pin(16,Pin.IN,OFF)
 d1=Pin(5,Pin.OUT)   
 d2=Pin(4,Pin.OUT)   
 d3=Pin(0,Pin.OUT)   
@@ -32,22 +34,7 @@ d6=Pin(12,Pin.OUT)
 d7=Pin(13,Pin.OUT)   
 d8=Pin(15,Pin.OUT)  
 
-d1.value(0)
-d2.value(0)
-d3.value(0)
-d4.value(0)
-d5.value(0)
-d6.value(0)
-d7.value(0)
-d8.value(0)
-i=0
-
-  
-def button_on():
-  while True:
-    if(button.value()==1):
-      close_all()
-      
+# 连接平台     
 def connectMQTT():
   global sta_if,c
   c = MQTTClient(CLIENT_ID, SERVER,1883,username,password)
@@ -60,7 +47,7 @@ def connectMQTT():
   print(cur_state)  
   sub_msg()
   
-    
+# 获取各开关当前状态    
 def get_states():
   global states
   states={
@@ -77,26 +64,26 @@ def get_states():
   states['properties']['d7']=d7.value()
   states['properties']['d8']=d8.value()
   return states
-    
+
+# 每30s上报状态信息   
 def publish_msg():
     while(1):  
       msg = json.dumps(get_states())
       print(msg)
       c.publish(TOPIC,msg,retain= True)
-      time.sleep(10)
-    
+      time.sleep(30)
+
+# 订阅接收远程控制指令    
 def sub_msg():
     c.subscribe(b"t3ta0k6j/e43b3850/service/set/request")
     c.subscribe(b"t3ta0k6j/e43b3850/service/get/request")
     print(sta_if.isconnected())
     while sta_if.isconnected():
-      global i
-      i+=1
-      print(i)
       c.wait_msg()
     print('reconnecte')
     do_connect(SSID,PASSWORD)
-            
+
+# 远程指令执行          
 def sub_cb(topic, msg):
     print((topic, msg))
     j = json.loads(msg)
@@ -126,29 +113,40 @@ def sub_cb(topic, msg):
         else:
           pass
     c.publish(TOPIC,json.dumps(get_states()),retain= True)
-    
+
+# 执行关闭所有    
 def close_all():
-  d1.value(off)
-  d2.value(off)
-  d3.value(off)
-  d4.value(off)
-  d5.value(off)
-  d6.value(off)
-  d7.value(off)
-  d8.value(off)
-  #c.publish(TOPIC,json.dumps(get_states()),retain= True)
-  
+  d1.value(OFF)
+  d2.value(OFF)
+  d3.value(OFF)
+  d4.value(OFF)
+  d5.value(OFF)
+  d6.value(OFF)
+  d7.value(OFF)
+  d8.value(OFF)
+  c.publish(TOPIC,json.dumps(get_states()),retain= True)
+
+# 执行打开所有 
 def open_all():
-  d1.value(on)
-  d2.value(on)
-  d3.value(on)
-  d4.value(on)
-  d5.value(on)
-  d6.value(on)
-  d7.value(on)
-  d8.value(on)
+  d1.value(ON)
+  d2.value(ON)
+  d3.value(ON)
+  d4.value(ON)
+  d5.value(ON)
+  d6.value(ON)
+  d7.value(ON)
+  d8.value(ON)
   c.publish(TOPIC,json.dumps(get_states()),retain= True)  
- 
+
+# 复位开关（全部关闭） 
+def button_on():
+  while True:
+    if button.value()==1 and (d1.value() or d2.value() or d3.value() or d4.value() or d5.value() or d6.value() or d7.value() or d8.value()):
+          close_all()
+    elif button.value()==1:
+          open_all()
+    else:
+          pass
  
 def teardown():
   try:
@@ -159,7 +157,6 @@ def teardown():
       
 def do_connect(SSID,PASSWORD):
   global sta_if
-  import network
   sta_if = network.WLAN(network.STA_IF)
   ap_if = network.WLAN(network.AP_IF)
   if ap_if.active():
@@ -179,12 +176,20 @@ def do_connect(SSID,PASSWORD):
       do_connect(SSID,PASSWORD)
   
 if __name__ == '__main__':
-  close_all()
+  d1.value(OFF)
+  d2.value(OFF)
+  d3.value(OFF)
+  d4.value(OFF)
+  d5.value(OFF)
+  d6.value(OFF)
+  d7.value(OFF)
+  d8.value(OFF)
   do_connect(SSID,PASSWORD)
-  try:
-      publish_msg()
-  finally:
-      teardown()
+
+  # try:
+  #     publish_msg()
+  # finally:
+  #     teardown()
 
 
 
